@@ -94,7 +94,7 @@ def set_default_asset(message):
         bot.register_next_step_handler(message, set_default_asset)
 # ----------------------------------------------------------------------------------------------------------------------
 
-
+print('a')
 
 # ----------------------------------------------------------------------------------------------------------------------
 @bot.message_handler(func=lambda mess: mess.text == '2 - Set currency' or mess.text == '2')
