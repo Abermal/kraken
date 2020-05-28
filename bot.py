@@ -2,7 +2,7 @@ import telebot as tlg
 from KrakenInterface import KrakenInterface as KI
 import time
 
-TOKEN = '1099662762:AAF7N5qKUo9y_ALvThyakYacrXuIlTrjY5o'
+TOKEN = ''
 bot = tlg.TeleBot(TOKEN)
 
 
