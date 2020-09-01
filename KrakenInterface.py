@@ -34,7 +34,7 @@ class KrakenInterface:
     def get_asset_names(self):
         # url = 'https://support.kraken.com/hc/en-us/articles/201893658-Currency-pairs-available-for-trading-on-Kraken'
 
-        page = open(r'curr_names.html', 'r').read()
+        page = open('curr_names.html', 'r').read()
         soup = BeautifulSoup(page, "lxml")
         tbody = str(soup.find('tbody'))
         asset_names = re.findall('<tr>\n<td class="confluenceTd">(\w*)</td>\n<td class="confluenceTd">(.*)</td>', tbody)
@@ -125,4 +125,8 @@ class KrakenInterface:
         url = self.base + 'Time'
         jsonData = requests.get(url).json()
         return datetime.datetime.fromtimestamp(jsonData["result"]["unixtime"])
+
+
+# kr = KrakenInterface()
+# print(kr.get_asset_names())
 
