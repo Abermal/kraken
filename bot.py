@@ -4,17 +4,16 @@ import json
 import logging
 import requests
 import time
+import os
 from datetime import timedelta
 from multiprocessing import Process, Event
 from KrakenInterface import KrakenInterface as KI
 from KrakenInterface import format_codes_names
-logging.basicConfig(filename='priceChangeLog.txt', level=logging.INFO,
-                    format=' %(asctime)s - %(threadName)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format=' %(asctime)s - %(processName)s - %(funcName)10s - %(message)s')
 
 
-with open("token.json", 'r') as token_file:
-    TOKEN = json.load(token_file)["TOKEN"]
-
+TOKEN = os.getenv("TOKEN")
+logger = logging.getLogger("BOT_log")
 
 def time_formatter(seconds):
     if seconds < 60:
@@ -47,7 +46,6 @@ class User:
         self.user_data = {}
         self.asset = asset
         self.currency = currency
-        self.state = 0
         self.uid = None
         self.cid = None
         self.help = False
@@ -62,7 +60,8 @@ class User:
 
             with open("config.json", "w+") as json_file:
                 json.dump(self.user_data, json_file)
-                print(f"{key}: {value}")
+                logger.info(f"{key}: {value}")
+                # print(f"{key}: {value}")
         else:
             self.__dict__[key] = value
 
@@ -75,82 +74,16 @@ class User:
                 pass
 
 
-print(__name__)
-# __mp_main__
-#
-# Still have no fucking idea why this is printed after "__mp_main__"
-#
-# asset: XBT
-# currency: EUR
-# state: 0
-# uid: None
-# help: False
-# step: 10
-# period: 1
-# tracking: False
+logger.info(__name__)
 
 bot = tlg.TeleBot(TOKEN)
 user = User()
 kr = KI()
 
-
-def track_price(config, event):
-    print("\nStarting tracking")
-    print(config)
-    step: int = config["step"]
-    asset = config["asset"]
-    currency = config["currency"]
-    period = config["period"]
-    cid = config["cid"]
-
-    kraken = KI(asset=asset, currency=currency)
-    asset_name = kraken.get_full_name(asset)
-    currency_name = kraken.get_full_name(currency)
-
-    msg = f"Tracker for {asset}|{asset_name} price in {currency}|{currency_name} is activated.\nTracking step: {step}." \
-          f"\nTracking interval: {time_formatter(period)}"
-    TELEGRAM_API_SEND_MSG = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={cid}"
-    data_start = {'chat_id': cid, 'text': msg, 'parse_mode': 'Markdown'}
-    requests.post(TELEGRAM_API_SEND_MSG, data=data_start)
-
-    # Этот кусок работает, но с переменными тут ясно путанина
-    old_price = kraken.get_current_price()
-    old_time = time.perf_counter()
-
-    def check(old_price, old_time):
-        left = old_price // step * step
-        right = left + step
-        price = kraken.get_current_price()
-
-        if price > right or price < left:
-            new_time = time.perf_counter()
-            time_period = round(new_time - old_time)
-            old_time = new_time
-            old_price = price
-
-            text = '*{}* {} | previous: {} | period: {}' \
-                .format(roundpr(price), currency, roundpr(old_price), str(timedelta(seconds=time_period)))
-            logging.info(text)
-            data = {
-                'chat_id': cid,
-                'text': text,
-                'parse_mode': 'Markdown'}
-            TELEGRAM_API_SEND_MSG = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={cid}"
-
-            requests.post(TELEGRAM_API_SEND_MSG, data=data)
-
-        return old_price, old_time
-
-    while True:
-        old_price, old_time = check(old_price, old_time)
-        time.sleep(period)
-        print(event.is_set())
-        if event.is_set():
-            break
-
-
 menu_commands = ['Set asset', 'Set currency', 'List assets', 'Show price', 'Track price']
-steps = ["10", "50", "100"]; sufix = " c.u."
+steps = ["10", "50", "100"]
+sufix = " c.u."
+
 # ----------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
 # Start command containing 3 buttons
@@ -167,9 +100,6 @@ def start_message(message):
                f"help you to track the price with a given step." \
                f"\n(Default: {user.asset}|{asset_name} in {user.currency}|{currency_name})\n\n"
 
-        # if user.state == 0 else ""
-    if user.cid != message.chat.id:
-        user.state = 0
     user.cid = message.chat.id
     bot.send_message(message.chat.id, reply_markup=keyboard,
                      text=greeting + f"Select one of the options:")
@@ -198,12 +128,7 @@ def callback_asset(call):
         if call.data == 'XBT' or call.data == 'ETH':
             user.uid = call.message.chat.id
             user.asset = call.data
-            user.state += 1
             bot.send_message(call.message.chat.id, f"{user.asset}|{kr.get_full_name(user.asset)} selected.")
-
-            # if user.state == 1:
-            #     markup_currency(call.message)
-            # else:
             markup_current_price(call.message)
 
         elif call.data == 'Another':
@@ -220,13 +145,9 @@ def set_custom_asset(message):
 
     if kr.check_asset(asset):
         user.asset = message.text.upper()
-        user.state += 1
         bot.send_message(message.chat.id, f"{user.asset}|{kr.get_full_name(user.asset)} selected.")
 
-        if user.state == 1:
-            markup_currency(message)
-        else:
-            markup_current_price(message)
+        markup_current_price(message)
 
     elif asset == '/HELP':
         user.help = True
@@ -261,11 +182,8 @@ def markup_currency(message):
 @bot.callback_query_handler(func=lambda call: call.data in kr.fiats.codes_clean.values)
 def callback_currency(call):
     user.currency = call.data
-    user.state += 1
     bot.send_message(call.message.chat.id, f"{user.currency}|{kr.get_full_name(user.currency)} selected.")
-    # if user.state == 1:
-    #     markup_asset(call.message)
-    # else:
+
     markup_current_price(call.message)
 # ----------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
@@ -284,14 +202,14 @@ def markup_current_price(message):
 
 @bot.callback_query_handler(func=lambda call: call.data == 'current_price')
 def callback_current_price(call):
-    user.state -= 1
     kraken = KI(asset=user.asset, currency=user.currency)
     asset_name = kraken.get_full_name(user.asset)
     currency_name = kraken.get_full_name(user.currency)
     try:
         price = kraken.get_current_price()
+        logger.info("Price was sent.")
         bot.send_message(call.message.chat.id, parse_mode='MarkDown',
-                         text=f"Current {user.asset}|{asset_name} price in {user.currency}|{currency_name} is: ***{price:.2f}***")
+                         text=f"Current {user.asset}|{asset_name} price in {user.currency}|{currency_name} is: ***{price:.5f}***")
 
     except Exception as e:
         if e == ValueError:
@@ -299,7 +217,6 @@ def callback_current_price(call):
             valid_quotes = kraken.find_valid_quotes()
             bot.send_message(call.message.chat.id, f"Invalid AssetPair. Valid quotes for {user.asset}|{asset_name} base are:"
                                                    f"\n{format_codes_names(valid_quotes)}")
-        user.state += 1
         start_message(call.message)
 # ----------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
@@ -464,11 +381,67 @@ def callback_stop(call):
     event.set()
     tracker.join()
     bot.send_message(call.message.chat.id, "Tracking stopped")
-    print('\nAlive?:', tracker.is_alive())
+    print('\nTracker alive?:', tracker.is_alive())
     print(tracker.pid, '\n')
     user.tracking = False
 # ----------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
+
+
+def track_price(config, event):
+    print("\nStarting tracking")
+    print(config)
+    step: int = config["step"]
+    asset = config["asset"]
+    currency = config["currency"]
+    period = config["period"]
+    cid = config["cid"]
+
+    kraken = KI(asset=asset, currency=currency)
+    asset_name = kraken.get_full_name(asset)
+    currency_name = kraken.get_full_name(currency)
+
+    msg = f"Tracker for {asset}|{asset_name} price in {currency}|{currency_name} is activated.\nTracking step: {step}." \
+          f"\nTracking interval: {time_formatter(period)}"
+    TELEGRAM_API_SEND_MSG = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={cid}"
+    data_start = {'chat_id': cid, 'text': msg, 'parse_mode': 'Markdown'}
+    requests.post(TELEGRAM_API_SEND_MSG, data=data_start)
+
+    # Этот кусок работает, но с переменными тут ясно путанина
+    old_price = kraken.get_current_price()
+    old_time = time.perf_counter()
+
+    def check(old_price, old_time):
+        left = old_price // step * step
+        right = left + step
+        price = kraken.get_current_price()
+
+        if price > right or price < left:
+            new_time = time.perf_counter()
+            time_period = round(new_time - old_time)
+            old_time = new_time
+            old_price = price
+
+            text = '*{}* {} | previous: {} | period: {}' \
+                .format(roundpr(price), currency, roundpr(old_price), str(timedelta(seconds=time_period)))
+            logging.info(text)
+            data = {
+                'chat_id': cid,
+                'text': text,
+                'parse_mode': 'Markdown'}
+            TELEGRAM_API_SEND_MSG = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={cid}"
+
+            requests.post(TELEGRAM_API_SEND_MSG, data=data)
+
+        return old_price, old_time
+
+    while True:
+        old_price, old_time = check(old_price, old_time)
+        time.sleep(period)
+        print("IS event set?", event.is_set())
+
+        if event.is_set():
+            break
 
 
 if __name__ == '__main__':
