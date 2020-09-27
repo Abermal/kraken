@@ -2,9 +2,9 @@ import telebot as tlg
 from telebot import types
 import json
 import logging
-import requests
 import time
 import os
+from flask import Flask, request
 from datetime import timedelta
 from multiprocessing import Process, Event
 from KrakenInterface import KrakenInterface as KI
@@ -444,6 +444,27 @@ def track_price(config, event):
             break
 
 
-if __name__ == '__main__':
-    event = Event()
-    bot.polling(none_stop=True, interval=0)
+if "HEROKU" in list(os.environ.keys()):
+    if __name__ == "__main__":
+        server = Flask(__name__)
+
+        @server.route('/' + TOKEN, methods=['POST'])
+        def get_message():
+            bot.process_new_updates([types.Update.de_json(request.stream.read().decode("utf-8"))])
+            return "!", 200
+
+
+        @server.route("/")
+        def web_hook():
+            bot.remove_webhook()
+            bot.set_webhook(url=os.getenv('HEROKU_URL') + TOKEN)
+            return "!", 200
+
+        event = Event()
+        server.run(host="0.0.0.0", port=int(os.environ.get('PORT', 8443)), debug=True)
+
+else:
+    if __name__ == '__main__':
+        bot.remove_webhook()
+        event = Event()
+        bot.polling(none_stop=True, interval=0)
