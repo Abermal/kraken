@@ -39,7 +39,7 @@ class KrakenInterface:
         if self.check_asset(value):
             self._asset = value
         else:
-            raise AttributeError(f'Invalid asset name. Please choose asset code name from the list: '
+            raise AttributeError(f'Invalid asset name {self._asset}. Please choose asset code name from the list: '
                                  f'\n{format_codes_names(self.assets)}')
 
     @property

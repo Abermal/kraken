@@ -4,6 +4,7 @@ import json
 import logging
 import time
 import os
+import requests
 from flask import Flask, request
 from datetime import timedelta
 from multiprocessing import Process, Event
@@ -94,7 +95,7 @@ def start_message(message):
 
     asset_name = kr.get_full_name(user.asset)
     currency_name = kr.get_full_name(user.currency)
-
+    
     greeting = f"Hi {message.chat.first_name}!\n" \
                f"I can show you the current price for various cryptocurrencies and " \
                f"help you to track the price with a given step." \
@@ -419,8 +420,6 @@ def track_price(config, event):
         if price > right or price < left:
             new_time = time.perf_counter()
             time_period = round(new_time - old_time)
-            old_time = new_time
-            old_price = price
 
             text = '*{}* {} | previous: {} | period: {}' \
                 .format(roundpr(price), currency, roundpr(old_price), str(timedelta(seconds=time_period)))
@@ -433,6 +432,9 @@ def track_price(config, event):
 
             requests.post(TELEGRAM_API_SEND_MSG, data=data)
 
+            old_time = new_time
+            old_price = price
+
         return old_price, old_time
 
     while True:
@@ -444,7 +446,7 @@ def track_price(config, event):
             break
 
 
-if "HEROKU" in list(os.environ.keys()):
+if "HEROKU_URL" in list(os.environ.keys()):
     if __name__ == "__main__":
         server = Flask(__name__)
 
@@ -465,6 +467,16 @@ if "HEROKU" in list(os.environ.keys()):
 
 else:
     if __name__ == '__main__':
-        bot.remove_webhook()
         event = Event()
         bot.polling(none_stop=True, interval=0)
+
+# kraken-hourly-bid-bot
+# heroku container:login
+# heroku container:push web --app kraken-hourly-bid-bot
+# heroku container:release web --app kraken-hourly-bid-bot
+# heroku logs --tail --app kraken-hourly-bid-bot
+
+
+# heroku ps:scale web=0 -a kraken-hourly-bid-bot
+# -a kraken-hourly-bid-bot
+# heroku config --app kraken-hourly-bid-bot
