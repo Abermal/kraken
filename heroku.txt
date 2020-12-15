@@ -1,0 +1,6 @@
+# heroku container:login
+# heroku container:push web --app kraken-hourly-bid-bot
+# heroku container:release web --app kraken-hourly-bid-bot
+# heroku logs --tail --app kraken-hourly-bid-bot
+
+# heroku config --app kraken-hourly-bid-bot

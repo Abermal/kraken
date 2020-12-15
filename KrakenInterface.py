@@ -166,8 +166,7 @@ class KrakenInterface:
         # input check
         interval_values = [1, 5, 15, 30, 60, 240, 1440, 10080, 21600]
         if interval not in interval_values:
-            raise AttributeError(
-                '\ntime frame interval in minutes (optional): 1 (default), 5, 15, 30, 60, 240, 1440, 10080, 21600')
+            raise AttributeError('\ntime frame interval in minutes (optional): 1 (default), 5, 15, 30, 60, 240, 1440, 10080, 21600')
 
         market = self.asset + self.currency
         url = self.base + 'OHLC?pair={}&interval={}&since={}' \
