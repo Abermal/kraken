@@ -109,13 +109,13 @@ class KrakenInterface:
 
     def find_index(self, asset=None, currency=None):
         if asset is None:
-            asset = self.asset
+            asset = self.asset.upper()
         if currency is None:
-            currency = self.currency
+            currency = self.currency.upper()
 
         try:
-            return self.asset_pairs.query("base_clean == @asset.upper() & quote_clean == @currency.upper()").index[0]
-        except IndexError as e:
+            return self.asset_pairs.query('base_clean == @asset & quote_clean == @currency').index[0]
+        except IndexError:
             valid_quotes_df = self.find_valid_quotes(asset)
             raise ValueError(f"Invalid AssetPair. Valid quotes for {asset} base are:"
                              f"\n{format_codes_names(valid_quotes_df)}")
@@ -137,18 +137,30 @@ class KrakenInterface:
         return self.assets[self.assets.codes.isin(crypto_for_fiat)]
 
     def get_current_price(self):
-        return self.order_book_of(1)[0].price.iloc[-1]
+        return self.order_book_df(1)[0].price.iloc[-1]
 
-    def order_book_of(self, count=7):
-        """Returns asks and bids as dataframes."""
+    def get_order_book_json(self, count=7):
+        from json.decoder import JSONDecodeError
+        from time import sleep
+
         market = self.asset + self.currency
         url = self.base + 'Depth?pair={}&count={}'.format(market.upper(), count)
-        marketS = self.find_index()
-
         page = requests.get(url)
-        jString = page.json()
-        asks = jString["result"][marketS]["asks"]
-        bids = jString["result"][marketS]["bids"]
+
+        try:
+            return page.json()
+        except JSONDecodeError as e:
+            print(f'Error {e}. Trying again...')
+            sleep(0.01)
+            return self.get_order_book_json(count)
+
+    def order_book_df(self, count=7):
+        """Returns asks and bids as dataframes."""
+        marketS = self.find_index()
+        json_order_book = self.get_order_book_json(count)
+
+        asks = json_order_book["result"][marketS]["asks"]
+        bids = json_order_book["result"][marketS]["bids"]
 
         dataAsks = pd.DataFrame(asks, columns=['price', 'volume', 'timestamp'], dtype='float32')
         dataBids = pd.DataFrame(bids, columns=['price', 'volume', 'timestamp'], dtype='float32')
