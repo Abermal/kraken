@@ -6,14 +6,6 @@ import requests
 from bs4 import BeautifulSoup
 
 
-def format_codes_names(df, column="codes_clean"):
-    s = ''
-    max_len = df[column].str.len().max()
-    for key, val in zip(df[column].values, df.name.values):
-        s += f'{str(key):<{max_len}s} | {str(val):s}\n'
-    return s
-
-
 class KrakenInterface:
     def __init__(self, asset='XBT', currency='EUR'):
         self.base = 'https://api.kraken.com/0/public/'
@@ -71,7 +63,7 @@ class KrakenInterface:
 
     def get_asset_names(self) -> pd.DataFrame:
         # url = 'https://support.kraken.com/hc/en-us/articles/201893658-Currency-pairs-available-for-trading-on-Kraken'
-        page = open('curr_names.html', 'r').read()
+        page = open('../source/curr_names.html', 'r').read()
         soup = BeautifulSoup(page, "lxml")
         table = soup.findAll("td")[4:]
 

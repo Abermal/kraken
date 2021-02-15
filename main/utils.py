@@ -32,3 +32,18 @@ def format_interval_name(interval: str) -> str:
         return format_time(int(interval)).strip()
     except ValueError:
         return interval
+
+def format_codes_names(df, column="codes_clean"):
+    s = ''
+    max_len = df[column].str.len().max()
+    for key, val in zip(df[column].values, df.name.values):
+        s += f'{str(key):<{max_len}s} | {str(val):s}\n'
+    return s
+
+def pretty(d, indent=0):
+   for key, value in d.items():
+      '\t' * indent + str(key)
+      if isinstance(value, dict):
+         pretty(value, indent+1)
+      else:
+         return '\t' * (indent+1) + str(value)

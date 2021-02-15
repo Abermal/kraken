@@ -9,9 +9,8 @@ import functools
 from flask import Flask, request
 from datetime import timedelta
 from multiprocessing import Process, Event
-from KrakenInterface import KrakenInterface as KI
-from KrakenInterface import format_codes_names
-from utils import *
+from main.KrakenInterface import KrakenInterface as KI
+from main.utils import *
 
 logging.basicConfig(level=logging.INFO,
                     format=' %(asctime)s - %(processName)s - %(funcName)10s - %(message)s')
@@ -28,7 +27,7 @@ class User:
         self.uid = None
         self.cid = None
         self.help = False
-        self.step = 10
+        self.step = 100
         self.period = 1
         self.tracking = False
 
@@ -37,7 +36,7 @@ class User:
             self.__dict__[key] = value
             self.user_data[key] = value
 
-            with open("config.json", "w+") as json_file:
+            with open("../config.json", "w+") as json_file:
                 json.dump(self.user_data, json_file)
                 logger.info(f"{key}: {value}")
         else:
@@ -58,7 +57,7 @@ user = User()
 kr = KI()
 
 # Set parameters for keyboards
-menu_commands = ['Set asset', 'Set currency', 'List assets', 'Show price', 'Track price']
+menu_commands = ['Set asset', 'Set currency', 'List assets', 'Current price', 'Track price']
 intervals = ['1', '60', '600', '3600', 'Another interval']
 interval_names = [format_interval_name(interval) for interval in intervals]
 steps = ['10', '50', '100', '200']
@@ -98,7 +97,6 @@ def start_message(message):
     user.cid = message.chat.id
     bot.send_message(message.chat.id, reply_markup=keyboard,
                      text=greeting + f"Select one of the options:")
-
 # ----------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -107,7 +105,7 @@ def start_message(message):
 # ----------------------------------------------------------------------------------------------------------------------
 # "Set asset" button containing 3 buttons
 @bot.message_handler(commands=['asset'])
-@bot.message_handler(func=lambda mess: 'Set asset' == mess.text)
+@bot.message_handler(func=lambda mess: menu_commands[0] == mess.text)  # 'Set asset'
 @log_message
 def markup_asset(message):
     assets_markup = types.InlineKeyboardMarkup(row_width=2)
@@ -174,7 +172,7 @@ def set_custom_asset(message):
 # ----------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
 @bot.message_handler(commands=['currency'])
-@bot.message_handler(func=lambda mess: mess.text == 'Set currency')
+@bot.message_handler(func=lambda mess: mess.text == menu_commands[1])  # 'Set currency'
 @log_message
 def markup_currency(message):
     currency_markup = types.InlineKeyboardMarkup(row_width=2)
@@ -190,8 +188,6 @@ def callback_currency(call):
                      f"{user.currency}|{kr.get_full_name(user.currency)} selected.")
 
     markup_current_price(call.message)
-
-
 # ----------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -199,7 +195,7 @@ def callback_currency(call):
 # ----------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
 @bot.message_handler(func=lambda mess: mess.text in kr.fiats.codes_clean.values)
-@bot.message_handler(func=lambda mess: mess.text == 'Show price')
+@bot.message_handler(func=lambda mess: mess.text == menu_commands[3])  # 'Current price'
 @log_message
 def markup_current_price(message):
     current_price_markup = types.InlineKeyboardMarkup()
@@ -235,7 +231,7 @@ def callback_current_price(call):
 
 # ----------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
-@bot.message_handler(func=lambda mess: mess.text == 'List assets')
+@bot.message_handler(func=lambda mess: mess.text == menu_commands[2])  # 'List assets'
 @bot.message_handler(commands=['help'])
 @log_message
 def help_message(message):
@@ -515,6 +511,10 @@ if "HEROKU_URL" in list(os.environ.keys()):
 
 else:
     if __name__ == '__main__':
+        try:
+            bot.remove_webhook()
+        except:
+            pass
         event = Event()
         bot.polling(none_stop=True, interval=0)
 
