@@ -8,4 +8,4 @@ RUN pip install -r requirements.txt
 
 COPY . /kraken
 
-CMD ["python", "bot.py"]
+CMD ["python", "./main/bot.py"]

@@ -9,8 +9,8 @@ import functools
 from flask import Flask, request
 from datetime import timedelta
 from multiprocessing import Process, Event
-from main.KrakenInterface import KrakenInterface as KI
-from main.utils import *
+from KrakenInterface import KrakenInterface as KI
+from utils import *
 
 logging.basicConfig(level=logging.INFO,
                     format=' %(asctime)s - %(processName)s - %(funcName)10s - %(message)s')

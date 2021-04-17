@@ -4,6 +4,7 @@ import pandas as pd
 import re
 import requests
 from bs4 import BeautifulSoup
+from utils import format_codes_names
 
 
 class KrakenInterface:
@@ -63,7 +64,7 @@ class KrakenInterface:
 
     def get_asset_names(self) -> pd.DataFrame:
         # url = 'https://support.kraken.com/hc/en-us/articles/201893658-Currency-pairs-available-for-trading-on-Kraken'
-        page = open('../source/curr_names.html', 'r').read()
+        page = open('./source/curr_names.html', 'r').read()
         soup = BeautifulSoup(page, "lxml")
         table = soup.findAll("td")[4:]
 
@@ -193,9 +194,10 @@ class KrakenInterface:
         return datetime.datetime.fromtimestamp(jsonData["result"]["unixtime"])
 
 
-# kr = KrakenInterface("XTZ", "usd")
+kr = KrakenInterface("XTZ", "usd")
 # asset_name = kr.get_full_name("XBT")
 # print(kr.assets)
+print(kr.get_asset_names())
 # print(format_codes_names(kr.assets))
 # print(format_codes_names(kr.find_valid_quotes("XTZ")))
 # print(kr.get_current_price())
