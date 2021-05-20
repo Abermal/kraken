@@ -6,4 +6,7 @@ Telegram bot offers user following functionality:
 *	to track the price receiving notifications when the price changes with a certain value step (100 USD) and time interval specified by user.
 *	Show list of valid asset pairs with codes and full names
 
+Test it out at @KrakenHourlyBidBot.
+NOTE: it takes some time for dynamos to wake up as it's hosted for free, so enter a /start commant and please wait for a response.
+
 Trading stratagies will be implemented in the future...
