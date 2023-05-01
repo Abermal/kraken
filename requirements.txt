@@ -2,7 +2,7 @@
 # $ conda create --name <env> --file <this file>
 # platform: win-64
 beautifulsoup4>=4.9.1
-flask==1.1.2
+flask==2.3.2
 lxml>=4.5.2
 numpy>=1.19.1
 pandas>=1.1.1
